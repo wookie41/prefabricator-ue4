@@ -14,6 +14,9 @@ class PREFABRICATORRUNTIME_API APrefabActor : public AActor {
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ExposeFunctionCategories = "Prefabricator,Mobility", AllowPrivateAccess = "true"))
 	class UPrefabComponent* PrefabComponent;
+	
+	UPROPERTY()
+	TArray<int> FlattenedParentIndices;
 
 public:
 	/// AActor Interface 

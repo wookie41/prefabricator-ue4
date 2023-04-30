@@ -110,7 +110,7 @@ void APrefabActor::LoadPrefab()
 
 void APrefabActor::SavePrefab()
 {
-	FPrefabTools::SaveStateToPrefabAsset(this);
+	FPrefabTools::SavePrefabToAsset(this);
 }
 
 bool APrefabActor::IsPrefabOutdated()
