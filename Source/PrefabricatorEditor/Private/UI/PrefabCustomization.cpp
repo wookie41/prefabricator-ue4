@@ -192,7 +192,14 @@ void GatherFlattenedHierarchy(AActor* InActor, TArray<AActor*>& OutHierarchy, bo
     InActor->GetAttachedActors(AttachedActors, false);
     for (AActor* Actor : AttachedActors)
     {
-        GatherFlattenedHierarchy(Actor, OutHierarchy, false);
+        if (Cast<APrefabActor>(Actor))
+        {
+            OutHierarchy.Add(Actor);
+        }
+        else
+        {
+            GatherFlattenedHierarchy(Actor, OutHierarchy, false);
+        }
     }
 }
 FReply FPrefabActorCustomization::HandleSaveToNewAsset(IDetailLayoutBuilder* DetailBuilder)

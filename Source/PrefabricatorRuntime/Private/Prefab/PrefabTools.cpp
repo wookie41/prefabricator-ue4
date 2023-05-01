@@ -56,7 +56,15 @@ void GatherFlattenedHierarchy(AActor* InActor, TArray<AActor*>& OutHierarchy, bo
     InActor->GetAttachedActors(AttachedActors, false);
     for (AActor* Actor : AttachedActors)
     {
-        GatherFlattenedHierarchy(Actor, OutHierarchy, false);
+        // Don't gather children of nested prefabs
+        if (Cast<APrefabActor>(Actor) == nullptr)
+        {
+            GatherFlattenedHierarchy(Actor, OutHierarchy, false);
+        }
+        else
+        {
+            OutHierarchy.Add(Actor);
+        }
     }
 }
 
@@ -86,9 +94,12 @@ void FPrefabTools::ParentActors(AActor* ParentActor, AActor* ChildActor)
 
             TArray<AActor*> AttachedActors;
             ChildActor->GetAttachedActors(AttachedActors, false);
-            for (AActor* Actor : AttachedActors)
+            if (Cast<APrefabActor>(ChildActor) == nullptr)
             {
-                ParentActors(ParentActor, Actor);
+                for (AActor* Actor : AttachedActors)
+                {
+                    ParentActors(ParentActor, Actor);
+                }
             }
         }
         {
@@ -259,7 +270,7 @@ APrefabActor* FPrefabTools::CreatePrefabFromActors(const TArray<AActor*>& InActo
             }
         }
     }
-
+        
     if (Service.IsValid())
     {
         Service->EndTransaction();
@@ -318,9 +329,7 @@ void FPrefabTools::SavePrefabToAsset(APrefabActor* PrefabActor)
 
     // Rebuilt the parent indices
     PrefabActor->FlattenedParentIndices.Empty();
-    TArray<AActor*> PrefabAttachedActors;
-    PrefabActor->GetAttachedActors(PrefabAttachedActors);
-    for (AActor* ChildActor : PrefabAttachedActors)
+    for (AActor* ChildActor : AttachedActors)
     {
         AActor* ParentActor = ParentActorsMap[ChildActor];
         if (ParentActor == nullptr)
@@ -328,15 +337,16 @@ void FPrefabTools::SavePrefabToAsset(APrefabActor* PrefabActor)
             PrefabActor->FlattenedParentIndices.Add(-1);
             continue;
         }
-        for (int i = PrefabAttachedActors.Num() - 1; i >= 0; --i)
+        for (int i = 0; i < AttachedActors.Num(); ++i)
         {
-            if (ParentActor == PrefabAttachedActors[i])
+            if (ParentActor == AttachedActors[i])
             {
-                PrefabActor->FlattenedParentIndices.Add(i);
+                PrefabActor->FlattenedParentIndices.Add(AttachedActors.Num() - i - 1);
                 break;
             }
         }
     }
+    Algo::Reverse(PrefabActor->FlattenedParentIndices);
 
     SaveStateToPrefabAsset(PrefabActor);
 
@@ -376,7 +386,7 @@ void FPrefabTools::SaveStateToPrefabAsset(APrefabActor* PrefabActor)
     PrefabAsset->ActorData.Reset();
 
     TArray<AActor*> Children;
-    GetActorChildren(PrefabActor, Children);
+    GatherFlattenedHierarchy(PrefabActor, Children, true);
 
     // Make sure the children do not have duplicate asset user data template ids
     {
